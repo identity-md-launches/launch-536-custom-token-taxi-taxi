@@ -23,8 +23,38 @@ Exemptions depend on the balance owner and recipient, not the approved spender.
 An exempt contract still needs allowance to spend somebody else's tokens.
 Factory allocations, distributor claims, pool deposits, and pool withdrawals
 therefore arrive whole. Swaps settling directly against the configured pool
-manager are exempt; unrelated routers, pools, and intermediate wallet transfers
-are subject to the ordinary rule.
+manager are exempt. An individual TAXI transfer between two nonexempt endpoints
+is taxed regardless of which router or spender submits it. This does not
+guarantee a fee on an entire route between wallets.
+
+### Fee avoidance through the pool manager
+
+**The 1% fee is avoidable by design.** A holder can relay tokens through the
+exempt manager: `holder -> poolManager -> recipient`. Both legs arrive whole.
+Taxi checks endpoints and cannot distinguish these movements from swap
+settlement. In Uniswap v4, an unprivileged unlock callback can use `sync`,
+`transferFrom` into the manager, `settle`, then `take` to another wallet. The
+credit and debit cancel without initializing a pool, executing a swap, or
+paying a pool fee. See the [v4 PoolManager source at the reviewed commit](https://github.com/Uniswap/v4-core/blob/46c6834/src/PoolManager.sol).
+
+The credit can also be converted into ERC-6909 claims with `mint`. Claim
+ownership can pass between wallets without calling Taxi, followed by `burn`
+and `take` to redeem the full TAXI amount. See the [separate claim ledger](https://github.com/Uniswap/v4-core/blob/46c6834/src/ERC6909.sol)
+and [claim burn authorization](https://github.com/Uniswap/v4-core/blob/46c6834/src/ERC6909Claims.sol).
+These routes require the holder's authorization and preserve total TAXI supply.
+
+For example, a direct transfer of 1,000,000 TAXI delivers 990,000 TAXI and pays
+10,000 TAXI to the treasury; relaying the same amount through the manager
+delivers 1,000,000 TAXI and pays the treasury nothing. The bidirectional
+exemption is an explicit deployment requirement. Preventing these routes would
+require changing the agreed transfer rules and reviewing launch settlement
+compatibility. The current implementation preserves those rules.
+
+Launch and treasury operators must disclose this limitation and must not budget
+guaranteed treasury income from wallet transfer volume. Deployment with these
+rules entails accepting that holders can avoid the fee through the manager.
+
+### ERC-20 details
 
 Rounding and ERC-20 details:
 
@@ -128,6 +158,12 @@ funds, treasury/self-transfer aliases, prohibited administrative calls, runtime
 opcode restrictions, and hostile registry responses. Four fuzz tests each run
 1,000 cases by default; the sequence test checks a separate balance model and
 supply conservation after 40 mixed transfers per case.
+
+`test/TaxiPoolManagerRelay.t.sol` reproduces the direct-transfer versus relay
+fee difference, claim ownership changes and full redemption, and rejection of
+a relay without allowance. Its fixture models only the token calls and claim
+ledger; it does not execute a real PoolManager's unlock accounting or ERC-6909
+implementation. These tests document fee avoidance, not its prevention.
 
 Local launch-flow tests model allocation, claims, and pool token movements with
 test fixtures. They do not deploy a real Uniswap pool or replace the provided
