@@ -1,0 +1,24 @@
+{
+  "kind": "custom_token",
+  "token": {
+    "contract": "Taxi",
+    "name": "Taxi",
+    "symbol": "TAXI",
+    "decimals": 18,
+    "constructorArgs": ["$factory", "$poolManager", "$launchNumber"],
+    "totalSupply": "100000000000000000000000000"
+  },
+  "contracts": [],
+  "pool": {
+    "pairedCurrency": "0x0000000000000000000000000000000000000000",
+    "fee": 3000,
+    "tickSpacing": 60,
+    "initialPrice": "177159557114295710296101716160726"
+  },
+  "economics": {
+    "poolBps": 5000,
+    "initialMarketCapWei": "20000000000000000000",
+    "remainderTo": "0x047f606fd5b2baa5f5c6c4ab8958e45cb6b054b7"
+  },
+  "notes": "Taxi (TAXI) is the requester's fixed-supply ERC-20 at src/Taxi.sol:Taxi (OpenZeppelin ERC20 v5.0.2, vendored under lib/). The constructor takes three static arguments in declaration order: factory_ (address, $factory), poolManager_ (address, $poolManager) and launchNumber_ (uint64, $launchNumber); the first two must be nonzero. It mints exactly 100,000,000 TAXI = 100000000000000000000000000 base units (18 decimals) once to msg.sender, which is the launch factory. There is no owner, no mint, burn, pause, blacklist, freeze, seize, fee setter, exemption setter, proxy or upgrade path; the runtime contains no DELEGATECALL, CALLCODE or SELFDESTRUCT. Transfer rule: on an ordinary transfer or transferFrom the requested amount is gross; floor(amount/100) (1%, FEE_BPS = 100) is transferred to the compiled-in treasury 0x047f606fd5b2baa5f5c6c4ab8958e45cb6b054b7 and the recipient receives the rest. Amounts below 100 base units pay no fee. The fee is a transfer, not a burn, so total supply never changes. Exempt (moves the full amount) are transfers from or to the immutable factory, from or to the immutable pool manager, and from or to the rewards distributor returned by factory.distributorOf(launchNumber), read afresh at transfer time through a bounded 30,000-gas STATICCALL that treats a revert, zero, missing code or malformed return as no distributor exemption. The distributor is deliberately not a constructor argument because the factory registers it after token deployment. Exempt transfers arrive whole: factory distributions, rewards claims, the pool seed, swaps settled against the pool manager and the remainder forwarded to economics.remainderTo. Exemptions depend on the sender and recipient, not the approved spender. A holder-authorized relay through the pool manager can move TAXI between wallets without the 1% fee; the fee is therefore not guaranteed on every end-to-end wallet route. No application contracts are deployed (contracts is empty) and there are no initialization calls. Pool: paired with native ETH (currency0 is the zero address, TAXI is currency1), fee 3000 (0.30%), tickSpacing 60. initialPrice is provenance only: sqrt(1e26 / 20e18) * 2^96 = 177159557114295710296101716160726, i.e. 5,000,000 TAXI per ETH, derived from economics.initialMarketCapWei (20 ETH) over the full totalSupply; the deployer derives the opening price itself. economics is copied verbatim from the job: poolBps 5000 of the whole supply seeds the single-sided pool, initialMarketCapWei 20000000000000000000, and the remainder goes to remainderTo 0x047f606fd5b2baa5f5c6c4ab8958e45cb6b054b7 (also the fee treasury). Build: solc 0.8.26, evm_version cancun, optimizer 200 runs, bytecode_hash none, cbor_metadata false; forge build / forge test run fully offline."
+}
